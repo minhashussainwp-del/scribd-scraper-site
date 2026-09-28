@@ -58,5 +58,7 @@ GitHub par push karte hi Vercel khud redeploy kar deta hai.
 
 ```bash
 npm install
-npx vercel dev
+npx vercel dev        # full local dev (API routes included)
+# ya sirf static preview:
+node server.js
 ```
