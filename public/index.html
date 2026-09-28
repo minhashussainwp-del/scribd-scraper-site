@@ -4,100 +4,267 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Scribd Downloader — Download Scribd Documents as PDF</title>
-<meta name="description" content="Paste a Scribd document URL and download it as a PDF. Free, no signup.">
+<meta name="description" content="Paste any public Scribd document link and download it as a clean PDF. Free, no signup, preview pages before downloading.">
+<link rel="canonical" href="/">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 16px; }
-  .wrap { width: 100%; max-width: 640px; }
-  h1 { font-size: 2rem; text-align: center; margin-bottom: 8px; }
-  h1 span { color: #38bdf8; }
-  p.sub { text-align: center; color: #94a3b8; margin-bottom: 32px; }
-  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; }
-  label { display: block; font-size: .85rem; color: #94a3b8; margin-bottom: 8px; }
-  .row { display: flex; gap: 8px; }
-  input[type=url] { flex: 1; padding: 12px 14px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #e2e8f0; font-size: 1rem; }
-  input[type=url]:focus { outline: none; border-color: #38bdf8; }
-  button { padding: 12px 20px; border: none; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: 700; font-size: 1rem; cursor: pointer; white-space: nowrap; }
-  button:hover { background: #7dd3fc; }
-  button:disabled { opacity: .5; cursor: default; }
-  #status { margin-top: 20px; min-height: 24px; text-align: center; color: #94a3b8; }
-  #status .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid #334155; border-top-color: #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; vertical-align: -3px; margin-right: 8px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .error { color: #f87171 !important; }
-  .note { margin-top: 12px; font-size: .8rem; color: #64748b; text-align: center; }
-  footer { margin-top: 48px; color: #64748b; font-size: .8rem; text-align: center; }
-  .steps { display: flex; gap: 12px; margin-top: 32px; }
-  .step { flex: 1; background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px; text-align: center; font-size: .85rem; color: #94a3b8; }
-  .step b { display: block; color: #e2e8f0; font-size: 1.4rem; margin-bottom: 6px; }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0b1220;--card:#141d33;--border:#24314f;--text:#e8eefc;--muted:#93a1c0;--accent:#38bdf8;--accent2:#818cf8}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+a{color:var(--accent)}
+.container{max-width:1100px;margin:0 auto;padding:0 20px}
+/* nav */
+nav{position:sticky;top:0;z-index:50;background:rgba(11,18,32,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+nav .container{display:flex;justify-content:space-between;align-items:center;height:64px}
+.logo{font-weight:800;font-size:1.25rem;color:var(--text);text-decoration:none}
+.logo span{color:var(--accent)}
+.nav-links a{color:var(--muted);text-decoration:none;margin-left:26px;font-size:.95rem}
+.nav-links a:hover{color:var(--text)}
+/* ads */
+.ad-slot{margin:22px auto;text-align:center;max-width:1100px;overflow:hidden}
+.ad-slot:empty{display:none}
+/* hero */
+.hero{text-align:center;padding:72px 20px 40px;background:radial-gradient(600px 300px at 50% -50px,rgba(56,189,248,.15),transparent)}
+.hero h1{font-size:clamp(2rem,5vw,3.2rem);line-height:1.15;margin-bottom:16px;font-weight:800}
+.hero h1 .grad{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{color:var(--muted);font-size:1.1rem;max-width:640px;margin:0 auto 30px}
+.dl-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:26px;max-width:680px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.dl-card label{display:block;text-align:left;font-size:.85rem;color:var(--muted);margin-bottom:8px}
+.dl-row{display:flex;gap:10px}
+.dl-row input{flex:1;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:1rem;min-width:0}
+.dl-row input:focus{outline:none;border-color:var(--accent)}
+.btn{padding:14px 26px;border:none;border-radius:10px;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#08111f;font-weight:800;font-size:1rem;cursor:pointer;white-space:nowrap}
+.btn:hover{filter:brightness(1.1)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+#status{margin-top:16px;min-height:26px;color:var(--muted);font-size:.95rem}
+#status .spinner{display:inline-block;width:18px;height:18px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#status.error{color:#f87171}
+.trust{display:flex;justify-content:center;gap:26px;margin-top:22px;flex-wrap:wrap;color:var(--muted);font-size:.88rem}
+.trust b{color:var(--text)}
+/* viewer */
+#viewer{display:none;max-width:860px;margin:34px auto 0;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.viewer-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.viewer-bar .pg{color:var(--muted);font-size:.9rem;min-width:110px;text-align:center}
+.viewer-bar .pg b{color:var(--text)}
+.vbtn{background:#1e2a47;border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.9rem}
+.vbtn:hover{border-color:var(--accent)}
+.vbtn:disabled{opacity:.4;cursor:default}
+#pdfCanvasWrap{max-height:70vh;overflow:auto;background:#0a0f1c;display:flex;justify-content:center;padding:16px}
+#pdfCanvas{box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:100%}
+#pdfFallback{display:none;width:100%;height:70vh;border:none}
+/* sections */
+section.block{padding:64px 0}
+section.block h2{text-align:center;font-size:1.9rem;margin-bottom:12px}
+section.block .lede{text-align:center;color:var(--muted);max-width:640px;margin:0 auto 40px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px}
+.card h3{margin-bottom:8px;font-size:1.1rem}
+.card p{color:var(--muted);font-size:.95rem}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;counter-reset:step}
+.step{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px;position:relative}
+.step .num{width:38px;height:38px;border-radius:50%;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#08111f;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.step h3{margin-bottom:6px}
+.step p{color:var(--muted);font-size:.95rem}
+/* faq */
+.faq{max-width:720px;margin:0 auto}
+.faq-item{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.faq-q{width:100%;background:none;border:none;color:var(--text);text-align:left;padding:18px 20px;font-size:1rem;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.faq-q .chev{color:var(--accent);font-size:1.3rem;transition:transform .2s}
+.faq-item.open .faq-q .chev{transform:rotate(45deg)}
+.faq-a{display:none;padding:0 20px 18px;color:var(--muted)}
+.faq-item.open .faq-a{display:block}
+/* blog cards */
+.post-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;text-decoration:none;color:var(--text);display:block}
+.post-card:hover{border-color:var(--accent)}
+.post-card h3{margin-bottom:8px}
+.post-card p{color:var(--muted);font-size:.93rem;margin-bottom:10px}
+.post-card small{color:#5b6b8c}
+/* footer */
+footer{border-top:1px solid var(--border);margin-top:40px;padding:36px 0;color:var(--muted);font-size:.9rem;text-align:center}
+footer a{color:var(--muted);text-decoration:none;margin:0 12px}
+footer a:hover{color:var(--text)}
+@media(max-width:600px){.dl-row{flex-direction:column}.btn{width:100%}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Scribd <span>Downloader</span></h1>
-  <p class="sub">Paste a Scribd document link, get a PDF. Free, no signup.</p>
 
-  <div class="card">
+<nav><div class="container">
+  <a class="logo" href="/">Scribd <span>Downloader</span></a>
+  <div class="nav-links"><a href="#features">Features</a><a href="#how">How it works</a><a href="#blog">Blog</a><a href="#faq">FAQ</a></div>
+</div></nav>
+
+<div class="ad-slot" data-ad="header"></div>
+
+<header class="hero"><div class="container">
+  <h1 id="heroTitle">Download Scribd Documents <span class="grad">as PDF</span></h1>
+  <p id="heroSubtitle">Paste any public Scribd link and get a clean, full-page PDF in seconds. No signup, no watermark, free.</p>
+
+  <div class="ad-slot" data-ad="aboveButton"></div>
+
+  <div class="dl-card">
     <label for="url">Scribd document URL</label>
-    <div class="row">
+    <div class="dl-row">
       <input type="url" id="url" placeholder="https://www.scribd.com/document/123456/..." autocomplete="off">
-      <button id="go">Download</button>
+      <button class="btn" id="go">Download</button>
     </div>
     <div id="status"></div>
-    <p class="note">Large documents can take a minute or two. Keep this tab open.</p>
   </div>
 
-  <div class="steps">
-    <div class="step"><b>1</b>Paste the Scribd link</div>
-    <div class="step"><b>2</b>We fetch the pages</div>
-    <div class="step"><b>3</b>Your PDF downloads</div>
+  <div class="ad-slot" data-ad="belowButton"></div>
+
+  <div id="viewer">
+    <div class="viewer-bar">
+      <button class="vbtn" id="prevPg">← Prev</button>
+      <span class="pg">Page <b id="pgNow">1</b> of <b id="pgTotal">?</b></span>
+      <div>
+        <button class="vbtn" id="zoomOut">−</button>
+        <button class="vbtn" id="zoomIn">+</button>
+        <button class="vbtn" id="nextPg">Next →</button>
+      </div>
+      <a class="vbtn" id="dlLink" href="#" target="_blank" rel="noopener" style="text-decoration:none">⤓ Download PDF</a>
+    </div>
+    <div id="pdfCanvasWrap"><canvas id="pdfCanvas"></canvas></div>
+    <iframe id="pdfFallback" title="PDF preview"></iframe>
   </div>
 
-  <footer>Only publicly accessible documents can be processed.</footer>
-</div>
+  <div class="trust"><span><b>✓</b> No signup</span><span><b>✓</b> Free</span><span><b>✓</b> Page preview</span><span><b>✓</b> Works on mobile</span></div>
+</div></header>
+
+<div class="ad-slot" data-ad="belowHero"></div>
+
+<section class="block" id="features"><div class="container">
+  <h2>Why use Scribd Downloader?</h2>
+  <p class="lede">Everything you need to save public Scribd documents as PDFs — nothing you don't.</p>
+  <div class="grid" id="featuresGrid"></div>
+</div></section>
+
+<section class="block" id="how"><div class="container">
+  <h2>How it works</h2>
+  <p class="lede">Three steps, under a minute.</p>
+  <div class="steps" id="stepsGrid"></div>
+</div></section>
+
+<div class="ad-slot" data-ad="inContent"></div>
+
+<section class="block" id="faq"><div class="container">
+  <h2>Frequently asked questions</h2>
+  <p class="lede">Quick answers to common questions.</p>
+  <div class="faq" id="faqList"></div>
+</div></section>
+
+<section class="block" id="blog"><div class="container">
+  <h2>From the blog</h2>
+  <p class="lede">Guides and tips for getting the most out of Scribd documents.</p>
+  <div class="grid" id="blogGrid"></div>
+</div></section>
+
+<div class="ad-slot" data-ad="aboveFooter"></div>
+
+<footer><div class="container">
+  <a href="/">Home</a><a href="/#blog">Blog</a><a href="/sitemap.xml">Sitemap</a><a href="/robots.txt">Robots</a>
+  <br><br>© 2026 Scribd Downloader. Only publicly accessible documents can be processed.
+</div></footer>
 
 <script>
-  const urlInput = document.getElementById('url');
-  const goBtn = document.getElementById('go');
-  const statusEl = document.getElementById('status');
-
-  function setStatus(html, isError) {
-    statusEl.innerHTML = html;
-    statusEl.className = isError ? 'error' : '';
-  }
-
-  goBtn.addEventListener('click', async () => {
-    const url = urlInput.value.trim();
-    if (!url) { setStatus('Please paste a Scribd URL first.', true); return; }
-    goBtn.disabled = true;
-    setStatus('<span class="spinner"></span>Fetching document, this can take a minute or two for long documents...');
-    try {
-      const r = await fetch('/api/scrape', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url })
+/* ---------- CMS content + ads ---------- */
+async function loadCMS(){
+  try{
+    const r = await fetch('/api/cms',{cache:'no-store'});
+    if(!r.ok) return;
+    const cms = await r.json();
+    const h = cms.homepage || {};
+    if(h.heroTitle) document.getElementById('heroTitle').innerHTML = escapeHtml(h.heroTitle).replace(/ as PDF$/,' <span class="grad">as PDF</span>');
+    if(h.heroSubtitle) document.getElementById('heroSubtitle').textContent = h.heroSubtitle;
+    const fg = document.getElementById('featuresGrid');
+    fg.innerHTML = (h.features||[]).map(f=>'<div class="card"><h3>'+escapeHtml(f.title)+'</h3><p>'+escapeHtml(f.desc)+'</p></div>').join('');
+    const sg = document.getElementById('stepsGrid');
+    sg.innerHTML = (h.steps||[]).map((s,i)=>'<div class="step"><div class="num">'+(i+1)+'</div><h3>'+escapeHtml(s.title)+'</h3><p>'+escapeHtml(s.desc)+'</p></div>').join('');
+    const fl = document.getElementById('faqList');
+    fl.innerHTML = (h.faqs||[]).map(f=>'<div class="faq-item"><button class="faq-q">'+escapeHtml(f.q)+'<span class="chev">+</span></button><div class="faq-a">'+escapeHtml(f.a)+'</div></div>').join('');
+    fl.querySelectorAll('.faq-q').forEach(b=>b.addEventListener('click',()=>b.parentElement.classList.toggle('open')));
+    const bg = document.getElementById('blogGrid');
+    bg.innerHTML = (cms.posts||[]).slice(0,6).map(p=>'<a class="post-card" href="/blog/'+encodeURIComponent(p.slug)+'"><h3>'+escapeHtml(p.title)+'</h3><p>'+escapeHtml(p.excerpt||'')+'</p><small>'+escapeHtml(p.date||'')+' →</small></a>').join('');
+    // ads
+    if(cms.ads && cms.ads.enabled !== false){
+      document.querySelectorAll('[data-ad]').forEach(slot=>{
+        const key = slot.getAttribute('data-ad');
+        const p = (cms.ads.placements||{})[key];
+        if(p && p.enabled && p.code){ slot.innerHTML = p.code; }
       });
-      let data = null;
-      try { data = await r.json(); } catch (e) {}
-      if (r.ok && data && data.downloadUrl) {
-        setStatus('Done! Your download should start now. If not, <a href="' + data.downloadUrl + '" target="_blank" rel="noopener" style="color:#38bdf8;">click here</a>.');
-        const a = document.createElement('a');
-        a.href = data.downloadUrl;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      } else {
-        const msg = (data && data.error) || 'This document took too long or could not be processed. Please try a shorter document.';
-        setStatus(msg, true);
-      }
-    } catch (e) {
-      setStatus('Could not reach the server. Please try again.', true);
     }
-    goBtn.disabled = false;
-  });
+    document.title = (h.heroTitle ? h.heroTitle + ' — ' : '') + 'Scribd Downloader';
+  }catch(e){/* keep defaults */}
+}
+function escapeHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+loadCMS();
 
-  urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') goBtn.click(); });
+/* ---------- scrape + PDF preview ---------- */
+const urlInput=document.getElementById('url'), goBtn=document.getElementById('go'), statusEl=document.getElementById('status');
+const viewer=document.getElementById('viewer'), canvas=document.getElementById('pdfCanvas'),
+      pgNow=document.getElementById('pgNow'), pgTotal=document.getElementById('pgTotal'),
+      fallback=document.getElementById('pdfFallback'), wrap=document.getElementById('pdfCanvasWrap'),
+      dlLink=document.getElementById('dlLink');
+let PV={pdf:null,page:1,scale:1.25,rendering:false};
+
+function setStatus(html,isError){statusEl.innerHTML=html;statusEl.className=isError?'error':'';}
+
+async function renderPage(){
+  if(!PV.pdf||PV.rendering) return;
+  PV.rendering=true;
+  try{
+    const page=await PV.pdf.getPage(PV.page);
+    const viewport=page.getViewport({scale:PV.scale});
+    const ctx=canvas.getContext('2d');
+    canvas.width=viewport.width; canvas.height=viewport.height;
+    await page.render({canvasContext:ctx,viewport}).promise;
+    pgNow.textContent=PV.page; pgTotal.textContent=PV.pdf.numPages;
+    document.getElementById('prevPg').disabled=PV.page<=1;
+    document.getElementById('nextPg').disabled=PV.page>=PV.pdf.numPages;
+  }catch(e){ useFallback(); }
+  PV.rendering=false;
+}
+function useFallback(){
+  wrap.style.display='none'; fallback.style.display='block';
+  fallback.src=PV.url;
+  pgTotal.textContent='?';
+}
+async function showPreview(url,filename){
+  viewer.style.display='block';
+  dlLink.href=url;
+  viewer.scrollIntoView({behavior:'smooth',block:'start'});
+  try{
+    if(!window['pdfjsLib']) throw new Error('pdfjs missing');
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    PV={pdf:await pdfjsLib.getDocument({url:url,withCredentials:false}).promise,page:1,scale:1.25,rendering:false,url:url};
+    wrap.style.display='flex'; fallback.style.display='none';
+    renderPage();
+  }catch(e){ PV={pdf:null,url:url}; useFallback(); }
+}
+document.getElementById('prevPg').addEventListener('click',()=>{if(PV.pdf&&PV.page>1){PV.page--;renderPage();}});
+document.getElementById('nextPg').addEventListener('click',()=>{if(PV.pdf&&PV.page<PV.pdf.numPages){PV.page++;renderPage();}});
+document.getElementById('zoomIn').addEventListener('click',()=>{PV.scale=Math.min(3,PV.scale+0.25);renderPage();});
+document.getElementById('zoomOut').addEventListener('click',()=>{PV.scale=Math.max(0.5,PV.scale-0.25);renderPage();});
+
+goBtn.addEventListener('click',async()=>{
+  const url=urlInput.value.trim();
+  if(!url){setStatus('Please paste a Scribd URL first.',true);return;}
+  goBtn.disabled=true; viewer.style.display='none';
+  setStatus('<span class="spinner"></span>Fetching document — long documents can take a minute or two...');
+  try{
+    const r=await fetch('/api/scrape',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url})});
+    let data=null; try{data=await r.json();}catch(e){}
+    if(r.ok&&data&&data.downloadUrl){
+      setStatus('Done! Preview below — use the page buttons to browse, then download.');
+      showPreview(data.downloadUrl,data.filename);
+    }else{
+      setStatus(((data&&data.error)||'This document took too long or could not be processed. Try a shorter document.'),true);
+    }
+  }catch(e){ setStatus('Could not reach the server. Please try again.',true); }
+  goBtn.disabled=false;
+});
+urlInput.addEventListener('keydown',e=>{if(e.key==='Enter')goBtn.click();});
 </script>
 </body>
 </html>

@@ -1,49 +1,62 @@
-# scribd-scraper-site (Vercel-ready)
+# Scribd Downloader — website (Vercel-ready)
 
-Web app built on the [`scribd-scraper`](https://www.npmjs.com/package/scribd-scraper) npm package (v1.0.5).
-Paste a Scribd document URL, get a PDF back. Free, no signup.
+Paste a Scribd document URL → preview pages → download PDF. Includes an admin
+panel (blog CMS, homepage editor, ads manager, SEO controls).
 
-## How it works
+## Features
 
-- `public/index.html` — frontend: URL form, spinner, download link.
-- `api/scrape.js` — serverless function: scrapes the document, uploads the PDF to
-  **Vercel Blob**, and returns a public download URL as JSON.
-  (Vercel functions can't return responses bigger than ~4.5MB, so the PDF goes to
-  Blob storage instead of being sent directly.)
-- `vercel.json` — function timeout 300 seconds (Vercel Hobby max with Fluid Compute).
-- `server.js` — old Express version, local testing only. Vercel ignores it.
+- **Downloader** — scrapes public Scribd documents, uploads the PDF to Vercel Blob,
+  returns a download link. Built-in **PDF preview with page numbers** (PDF.js):
+  prev/next, zoom, page X of Y.
+- **Admin panel** (`/admin.html`) — password protected:
+  - Blog posts: add / edit / delete (title, slug, excerpt, date, HTML content)
+  - Homepage: hero text, features, how-it-works steps, FAQs
+  - Ads: 8 prebuilt placements (header, below hero, above/below download button,
+    in-content, above footer, blog top/bottom) — paste any ad code per slot
+  - SEO: edit `robots.txt`, control sitemap contents (homepage, posts, extra URLs)
+- **Blog** — posts render at `/blog/:slug` with meta tags + canonical (SEO friendly).
+- **Sitemap** — live at `/sitemap.xml` (generated from posts + settings).
+- **Robots** — live at `/robots.txt` (admin-controlled).
+- Content is stored as JSON in Vercel Blob — edits go live instantly, no redeploy.
+
+## Project structure
+
+```
+api/scrape.js        scrape → Blob → { downloadUrl }
+api/cms.js           public site content (JSON)
+api/admin-login.js   password → signed session cookie
+api/admin-save.js    save homepage/posts/ads/seo (auth required)
+api/sitemap.js       → /sitemap.xml
+api/robots.js        → /robots.txt
+api/post/[slug].js   → /blog/:slug (server-rendered)
+api/_lib.js          shared: Blob CMS, auth, defaults
+public/index.html    professional frontend + PDF preview
+public/admin.html    admin panel
+vercel.json          300s timeout + rewrites
+```
 
 ## Vercel setup (one-time, dashboard me)
 
-**1. Deployment Protection OFF karo** (warna public site nahi khol sakegi):
-Vercel Dashboard → project → **Settings → Deployment Protection** → Vercel Authentication **disable** karo.
+1. **Deployment Protection OFF** — project → Settings → Deployment Protection →
+   Vercel Authentication **disable** (warna public site nahi khol sakegi).
+2. **Blob storage** — Dashboard → Storage → Create → Blob → project se connect.
+3. **Environment variables** — project → Settings → Environment Variables:
+   - `BLOB_READ_WRITE_TOKEN` = Blob store ka token (PDFs + CMS content ke liye)
+   - `ADMIN_PASSWORD` = admin panel ka password (khud choose karo)
+4. **Redeploy** karo.
 
-**2. Blob storage lagao** (PDFs ke liye):
-1. Vercel Dashboard → **Storage** tab → **Create** → **Blob** → naam do → Create.
-2. Us store ko `scribd-scraper-site` project se connect karo (ya token copy karo).
-3. Project → **Settings → Environment Variables** → nayi variable:
-   - Name: `BLOB_READ_WRITE_TOKEN`
-   - Value: Blob store ka token
-4. **Redeploy** karo (Deployments → ... → Redeploy).
-
-Is ke baad har scrape ka PDF Blob me upload hoga aur user ko direct download link milega.
-
-## Deploy
-
-GitHub repo se: Vercel Dashboard → Add New Project → repo select → Deploy.
 GitHub par push karte hi Vercel khud redeploy kar deta hai.
 
 ## Limits (honest note)
 
-- Bohat lambi documents (80+ pages) function timeout (300s) me aa sakti hain.
-- Aisi documents ke liye yehi code kisi VPS / Render / Railway par `node server.js`
-  se chalao — wahan koi time ya size limit nahi.
+- Vercel functions ~4.5MB se bara response nahi bhej sakte — is liye PDF Blob me
+  upload hota hai aur user ko link milta hai.
+- Bohat lambi documents (80+ pages) timeout ho sakti hain — un ke liye VPS /
+  Render / Railway behtar hai.
 
-## Local test
+## Local dev
 
 ```bash
 npm install
-npm start        # Express version, http://localhost:3000
-# ya
-npx vercel dev   # Vercel version locally
+npx vercel dev
 ```

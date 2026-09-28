@@ -1,1 +1,1 @@
-{"dependencies":{"@vercel/blob":"^1.1.1","express":"^4.19.2","scribd-scraper":"^1.0.5"},"description":"Web app that downloads Scribd documents as PDF using the scribd-scraper package","license":"MIT","main":"server.js","name":"scribd-scraper-site","scripts":{"start":"node server.js"},"version":"1.0.0"}
+{"dependencies":{"@vercel/blob":"^1.1.1","scribd-scraper":"^1.0.5"},"description":"Scribd Downloader web app — admin panel, blog CMS, ads, SEO controls. Vercel-ready.","license":"MIT","name":"scribd-scraper-site","version":"2.0.0"}
