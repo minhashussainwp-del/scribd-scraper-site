@@ -1,1 +1,1 @@
-{"functions":{"api/scrape.js":{"maxDuration":300}},"rewrites":[{"destination":"/api/sitemap","source":"/sitemap.xml"},{"destination":"/api/robots","source":"/robots.txt"},{"destination":"/api/post/:slug","source":"/blog/:slug"}]}
+{"framework":null,"functions":{"api/scrape.js":{"maxDuration":300}},"outputDirectory":"public","rewrites":[{"destination":"/api/sitemap","source":"/sitemap.xml"},{"destination":"/api/robots","source":"/robots.txt"},{"destination":"/api/post/:slug","source":"/blog/:slug"}]}
