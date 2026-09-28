@@ -69,28 +69,26 @@
     const url = urlInput.value.trim();
     if (!url) { setStatus('Please paste a Scribd URL first.', true); return; }
     goBtn.disabled = true;
-    setStatus('<span class="spinner"></span>Fetching document, this can take a minute...');
+    setStatus('<span class="spinner"></span>Fetching document, this can take a minute or two for long documents...');
     try {
       const r = await fetch('/api/scrape', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url })
       });
-      const contentType = r.headers.get('content-type') || '';
-      if (r.ok && contentType.includes('application/pdf')) {
-        const blob = await r.blob();
+      let data = null;
+      try { data = await r.json(); } catch (e) {}
+      if (r.ok && data && data.downloadUrl) {
+        setStatus('Done! Your download should start now. If not, <a href="' + data.downloadUrl + '" target="_blank" rel="noopener" style="color:#38bdf8;">click here</a>.');
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        const disp = r.headers.get('content-disposition') || '';
-        const m = disp.match(/filename="([^"]+)"/);
-        a.download = m ? m[1] : 'scribd-document.pdf';
+        a.href = data.downloadUrl;
+        a.target = '_blank';
+        a.rel = 'noopener';
         document.body.appendChild(a);
         a.click();
         a.remove();
-        setStatus('Download started.');
       } else {
-        let msg = 'Request failed.';
-        try { const j = await r.json(); if (j.error) msg = j.error; } catch (e) {}
+        const msg = (data && data.error) || 'This document took too long or could not be processed. Please try a shorter document.';
         setStatus(msg, true);
       }
     } catch (e) {

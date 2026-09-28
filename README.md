@@ -3,34 +3,41 @@
 Web app built on the [`scribd-scraper`](https://www.npmjs.com/package/scribd-scraper) npm package (v1.0.5).
 Paste a Scribd document URL, get a PDF back. Free, no signup.
 
-## Deploy to Vercel (2 tareeqe)
+## How it works
 
-**Tareeqa 1 — Vercel CLI (sab se fast):**
-```bash
-cd scribd-scraper-site-vercel
-npx vercel
-```
-Pehli baar Vercel account se login karna parega, phir har deploy par sirf `npx vercel --prod`.
+- `public/index.html` — frontend: URL form, spinner, download link.
+- `api/scrape.js` — serverless function: scrapes the document, uploads the PDF to
+  **Vercel Blob**, and returns a public download URL as JSON.
+  (Vercel functions can't return responses bigger than ~4.5MB, so the PDF goes to
+  Blob storage instead of being sent directly.)
+- `vercel.json` — function timeout 300 seconds (Vercel Hobby max with Fluid Compute).
+- `server.js` — old Express version, local testing only. Vercel ignores it.
 
-**Tareeqa 2 — GitHub se:**
-1. Is folder ko GitHub repo me push karo.
-2. Vercel dashboard → Add New Project → repo select karo → Deploy.
-3. Koi env variable ya setting change karne ki zaroorat nahi.
+## Vercel setup (one-time, dashboard me)
 
-## Kaise kaam karta hai (Vercel version)
+**1. Deployment Protection OFF karo** (warna public site nahi khol sakegi):
+Vercel Dashboard → project → **Settings → Deployment Protection** → Vercel Authentication **disable** karo.
 
-- `public/index.html` — frontend: URL form, spinner, PDF auto-download.
-- `api/scrape.js` — serverless function: ek hi request me document scrape karke PDF wapas bhejta hai.
-- `vercel.json` — function timeout 60 second tak set hai.
-- `server.js` — purana Express version, sirf local testing ke liye. Vercel isay ignore karta hai.
+**2. Blob storage lagao** (PDFs ke liye):
+1. Vercel Dashboard → **Storage** tab → **Create** → **Blob** → naam do → Create.
+2. Us store ko `scribd-scraper-site` project se connect karo (ya token copy karo).
+3. Project → **Settings → Environment Variables** → nayi variable:
+   - Name: `BLOB_READ_WRITE_TOKEN`
+   - Value: Blob store ka token
+4. **Redeploy** karo (Deployments → ... → Redeploy).
 
-## Important limit (honest note)
+Is ke baad har scrape ka PDF Blob me upload hoga aur user ko direct download link milega.
 
-Vercel ka serverless function ek request me max **60 second** chalta hai (`maxDuration`).
-Chhoti documents (jaise 1–20 pages) aaram se ho jati hain. Bohat lambi documents
-(jaise 80 pages wali, jisme ~80 second lage thay) **timeout** ho sakti hain —
-un ke liye yehi code kisi VPS (ya Render/Railway) par `node server.js` se chalao,
-wahan koi time limit nahi.
+## Deploy
+
+GitHub repo se: Vercel Dashboard → Add New Project → repo select → Deploy.
+GitHub par push karte hi Vercel khud redeploy kar deta hai.
+
+## Limits (honest note)
+
+- Bohat lambi documents (80+ pages) function timeout (300s) me aa sakti hain.
+- Aisi documents ke liye yehi code kisi VPS / Render / Railway par `node server.js`
+  se chalao — wahan koi time ya size limit nahi.
 
 ## Local test
 

@@ -3,6 +3,7 @@ const path = require('path');
 const os = require('os');
 const crypto = require('crypto');
 const scrapeScribd = require('scribd-scraper');
+const { put } = require('@vercel/blob');
 
 function isValidScribdUrl(u) {
   try {
@@ -14,9 +15,10 @@ function isValidScribdUrl(u) {
   }
 }
 
-// Vercel serverless function: scrapes the document and returns the PDF directly.
-// Note: one invocation = one scrape, so very long documents are limited by
-// the function's maxDuration (see vercel.json).
+// Vercel serverless function:
+// 1. scrapes the Scribd document to /tmp
+// 2. uploads the PDF to Vercel Blob (functions can't return >4.5MB responses)
+// 3. returns a public download URL as JSON
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -29,6 +31,13 @@ module.exports = async (req, res) => {
   }
   if (!isValidScribdUrl(url)) {
     return res.status(400).json({ error: 'Only scribd.com document URLs are supported.' });
+  }
+
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!token) {
+    return res.status(500).json({
+      error: 'Storage is not configured. Add the BLOB_READ_WRITE_TOKEN environment variable in the Vercel project settings and redeploy.',
+    });
   }
 
   const jobDir = path.join(os.tmpdir(), 'scrape-' + crypto.randomBytes(8).toString('hex'));
@@ -47,10 +56,18 @@ module.exports = async (req, res) => {
     const pdfPath = path.join(jobDir, pdfs[0]);
     const pdfBuffer = fs.readFileSync(pdfPath);
 
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename="' + pdfs[0] + '"');
-    res.setHeader('Content-Length', pdfBuffer.length);
-    return res.status(200).send(pdfBuffer);
+    const blob = await put('scribd-pdfs/' + pdfs[0], pdfBuffer, {
+      access: 'public',
+      token,
+      contentType: 'application/pdf',
+      addRandomSuffix: false,
+    });
+
+    return res.status(200).json({
+      downloadUrl: blob.url,
+      filename: pdfs[0],
+      size: pdfBuffer.length,
+    });
   } catch (e) {
     return res.status(500).json({ error: e.message || 'Scraping failed.' });
   } finally {
